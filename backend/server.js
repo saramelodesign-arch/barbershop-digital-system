@@ -2,9 +2,13 @@ const express = require('express');
 
 const app = express();
 
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'Server is running' });
-});
+// Middleware para permitir JSON
+app.use(express.json());
+
+// Importar rotas
+const healthRoutes = require('./src/routes/healthRoutes');
+
+app.use('/health', healthRoutes);
 
 const PORT = 3000;
 
