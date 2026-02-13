@@ -46,9 +46,10 @@ const createAppointment = async (req, res) => {
 
     // Check if barber exists
     const barberResult = await pool.query(
-      'SELECT id FROM barbers WHERE id = $1',
-      [barber_id]
-    );
+  'SELECT working_hours_start, working_hours_end FROM barbers WHERE id = $1',
+  [barber_id]
+);
+
 
     if (barberResult.rows.length === 0) {
       return res.status(404).json({ error: 'Barber not found' });
@@ -56,13 +57,42 @@ const createAppointment = async (req, res) => {
 
     const duration = serviceResult.rows[0].duration;
 
-    const startDate = new Date(start_time);
-    if (isNaN(startDate.getTime())) {
-      return res.status(400).json({ error: 'Invalid start time' });
-    }
+const startDate = new Date(start_time);
 
-    // Calculate end time based on service duration
-    const endDate = new Date(startDate.getTime() + duration * 60000);
+if (isNaN(startDate.getTime())) {
+  return res.status(400).json({ error: 'Invalid start time' });
+}
+
+// Calculate end time
+const endDate = new Date(startDate.getTime() + duration * 60000);
+
+// Get barber working hours
+const workingStart = barberResult.rows[0].working_hours_start;
+const workingEnd = barberResult.rows[0].working_hours_end;
+
+// Convert working hours to minutes
+const [workStartH, workStartM] = workingStart.split(':').map(Number);
+const [workEndH, workEndM] = workingEnd.split(':').map(Number);
+
+const workStartMinutes = workStartH * 60 + workStartM;
+const workEndMinutes = workEndH * 60 + workEndM;
+
+// Convert appointment times to minutes
+const appointmentStartMinutes =
+  startDate.getHours() * 60 + startDate.getMinutes();
+
+const appointmentEndMinutes =
+  endDate.getHours() * 60 + endDate.getMinutes();
+
+// Validate working hours
+if (
+  appointmentStartMinutes < workStartMinutes ||
+  appointmentEndMinutes > workEndMinutes
+) {
+  return res.status(400).json({
+    error: 'Appointment outside barber working hours'
+  });
+}
 
     // Check for overlapping appointments
     const conflictCheck = await pool.query(
@@ -163,6 +193,7 @@ const updateAppointment = async (req, res) => {
       return res.status(400).json({ error: 'Invalid appointment id' });
     }
 
+    // Fetch existing appointment
     const existing = await pool.query(
       'SELECT * FROM appointments WHERE id = $1',
       [id]
@@ -193,6 +224,7 @@ const updateAppointment = async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    // Check service
     const serviceResult = await pool.query(
       'SELECT duration FROM services WHERE id = $1',
       [service_id]
@@ -204,13 +236,50 @@ const updateAppointment = async (req, res) => {
 
     const duration = serviceResult.rows[0].duration;
 
+    // Check barber
+    const barberResult = await pool.query(
+      'SELECT working_hours_start, working_hours_end FROM barbers WHERE id = $1',
+      [barber_id]
+    );
+
+    if (barberResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Barber not found' });
+    }
+
     const startDate = new Date(start_time);
+
     if (isNaN(startDate.getTime())) {
       return res.status(400).json({ error: 'Invalid start time' });
     }
 
     const endDate = new Date(startDate.getTime() + duration * 60000);
 
+    // Convert working hours to minutes
+    const workingStart = barberResult.rows[0].working_hours_start;
+    const workingEnd = barberResult.rows[0].working_hours_end;
+
+    const [workStartH, workStartM] = workingStart.split(':').map(Number);
+    const [workEndH, workEndM] = workingEnd.split(':').map(Number);
+
+    const workStartMinutes = workStartH * 60 + workStartM;
+    const workEndMinutes = workEndH * 60 + workEndM;
+
+    const appointmentStartMinutes =
+      startDate.getHours() * 60 + startDate.getMinutes();
+
+    const appointmentEndMinutes =
+      endDate.getHours() * 60 + endDate.getMinutes();
+
+    if (
+      appointmentStartMinutes < workStartMinutes ||
+      appointmentEndMinutes > workEndMinutes
+    ) {
+      return res.status(400).json({
+        error: 'Appointment outside barber working hours'
+      });
+    }
+
+    // Check conflict excluding current appointment
     const conflictCheck = await pool.query(
       `SELECT id FROM appointments
        WHERE barber_id = $1
@@ -227,6 +296,7 @@ const updateAppointment = async (req, res) => {
       });
     }
 
+    // Perform update
     const result = await pool.query(
       `UPDATE appointments
        SET client_name = $1,
@@ -255,6 +325,7 @@ const updateAppointment = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 
 
 /* =====================================
