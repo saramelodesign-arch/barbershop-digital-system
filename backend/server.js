@@ -22,11 +22,15 @@ app.use(express.json());
 const healthRoutes = require('./src/routes/healthRoutes');
 const serviceRoutes = require('./src/routes/serviceRoutes');
 const barberRoutes = require('./src/routes/barberRoutes');
+const appointmentRoutes = require('./src/routes/appointmentRoutes');
+
 
 
 app.use('/health', healthRoutes);
 app.use('/services', serviceRoutes);
 app.use('/barbers', barberRoutes);
+app.use('/appointments', appointmentRoutes);
+
 
 
 const PORT = process.env.PORT || 3000;
