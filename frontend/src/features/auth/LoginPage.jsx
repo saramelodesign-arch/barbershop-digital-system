@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { loginUser } from "../../api/authService";
 import api from "../../api/api";
 
 const LoginPage = () => {
@@ -8,25 +9,18 @@ const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = async () => {
-    try {
-      // Send login request
-      const response = await api.post("/auth/login", {
-        email,
-        password,
-      });
+const handleLogin = async () => {
+  try {
+    const { user, token } = await loginUser({ email, password });
 
-      const { user, token } = response.data;
+    localStorage.setItem("token", token);
+    login(user);
 
-      // Save token separately
-      localStorage.setItem("token", token);
+  } catch (error) {
+    console.error("Login failed", error);
+  }
+};
 
-      // Update context
-      login(user);
-    } catch (error) {
-      console.error("Login failed", error);
-    }
-  };
 
   return (
     <div>
