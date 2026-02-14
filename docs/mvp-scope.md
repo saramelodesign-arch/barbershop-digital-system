@@ -1,26 +1,92 @@
-MVP Scope – Version 1.0
-Core Features
+# MVP Scope
 
-Business configuration
+## 1. Multi-Tenant Base (pensado para SaaS)
 
-Service management
+- Cada barbearia tem:
+  - id
+  - name
+  - email
+  - phone
+  - address
+  - timezone
 
-Barber management
+Todas as entidades devem pertencer a uma barbearia.
 
-Appointment booking system
+---
 
-Conflict validation
+## 2. Business Configuration
 
-Booking cancellation logic
+- Opening hours (ex: 09:00–19:00)
+- Closed days (ex: Sunday)
+- Slot duration (default: 30 min)
+- Cancellation window (ex: 24h before appointment)
 
-Excluded from MVP
+Regras:
+- Não permitir marcações fora do horário.
+- Não permitir marcações em dias fechados.
 
-Loyalty system
+---
 
-AI style suggestions
+## 3. Service Management (CRUD)
 
-Multi-tenant SaaS
+Cada serviço deve ter:
+- id
+- name
+- duration (minutos)
+- price
+- isActive
 
-Payments integration
+Regras:
+- Duração obrigatória
+- Preço >= 0
 
-Mobile native app
+---
+
+## 4. Barber Management (CRUD)
+
+Cada barbeiro deve ter:
+- id
+- name
+- photo (opcional)
+- active status
+
+Opcional (mas recomendado já):
+- Horário individual
+
+---
+
+## 5. Booking System
+
+Cada marcação deve ter:
+- id
+- customerName
+- customerPhone
+- serviceId
+- barberId
+- startTime
+- endTime
+- status (scheduled, cancelled)
+
+### Regras críticas:
+
+1. Não pode haver sobreposição:
+   - Mesmo barbeiro
+   - Intervalos que colidem
+
+2. startTime + duration = endTime
+
+3. Cancelamento:
+   - Só permitido até X horas antes
+   - Após isso → erro
+
+4. Só permitir marcação:
+   - Dentro do horário do negócio
+   - Dentro do horário do barbeiro
+   - Em slot válido
+
+---
+
+## 6. Admin Access (simples)
+
+- Login básico
+- Apenas admin da barbearia pode gerir dados
